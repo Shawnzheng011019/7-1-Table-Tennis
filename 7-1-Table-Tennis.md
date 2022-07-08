@@ -209,7 +209,7 @@ int main()
 		Customers[i].arriveTime = h * 3600 + m * 60 + s;//记录到达时间
 		Customers[i].startTime = endTime + 1;//记录开始时间
 		if(Customers[i].PlayTime > 120)
-            Customers[i].PlayTime = 120;//时间不超过两小时，超过两小时以两小时计算
+            	Customers[i].PlayTime = 120;//时间不超过两小时，超过两小时以两小时计算
 		Customers[i].PlayTime *= 60;//按秒计算
 	}
 	cin >> K >> M;//K个球桌，M个VIP球桌
