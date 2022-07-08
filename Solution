@@ -1,0 +1,146 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Customer
+{
+	int arriveTime, PlayTime, isVIP;//所有时间用秒来计算
+	int startTime;
+    //到达时间，玩耍时间，是否为vip，开始服务时间
+}Customers[10010];
+
+int N, K, M;//人数，桌数，vip桌数
+int tables[110][2];//[0]球桌将被占用时长，[1]是否是vip桌
+int served[110];//球桌的服务数量
+int openTime = 8 * 3600;//从8点开门开始
+int endTime = 21 * 3600;//21点球馆关门
+bool ArrivalQueue(Customer a, Customer b)
+{
+	return a.arriveTime < b.arriveTime;//按到达时间排队
+}
+bool StartQueue(Customer a, Customer b)
+{
+	return a.startTime < b.startTime;//按开始时间排队
+}
+int findEmptyTable(int isVip)//寻找空桌子
+{
+	int i;
+	int emptyTable = -1;//初始化
+	for (i = 0; i < K; i++)
+	{
+		if (tables[i][0] == 0)//发现空桌子，要判断是不是VIP桌
+		{
+			if (isVip == 1 && tables[i][1] != 1)
+				continue;//跳过vip桌，实在没桌子了再提供vip桌
+			emptyTable = i;
+			break;
+		}
+	}
+	return emptyTable;
+}
+int findVip(int start, int StartTime)//寻找来了的vip客户
+{
+	int j, vip = -1;
+	for (j = start; j < N && Customers[j].arriveTime <= StartTime; j++)
+	{
+		if (Customers[j].isVIP)
+		{
+			vip = j;//是vip就返回，不是就继续循环
+			break;
+		}
+	}
+	return vip;
+}
+int main()
+{
+	int i, j, h, m, s;
+	cin >> N;
+	for (i = 0; i < N; i++)
+	{
+		//格式化输入，scanf优于cin
+		scanf("%d:%d:%d %d %d", &h, &m, &s, &Customers[i].PlayTime, &Customers[i].isVIP);
+		Customers[i].arriveTime = h * 3600 + m * 60 + s;//记录到达时间
+		Customers[i].startTime = endTime + 1;//记录开始时间
+		if(Customers[i].PlayTime > 120)
+            Customers[i].PlayTime = 120;//时间不超过两小时，超过两小时以两小时计算
+		Customers[i].PlayTime *= 60;//按秒计算
+	}
+	cin >> K >> M;//K个球桌，M个VIP球桌
+	for (i = 0; i < K; i++)
+		tables[i][0] = tables[i][1] = served[i] = 0;//初始化球桌，全部为未服务状态
+	for (i = 0; i < M; i++)
+	{
+		cin >> j;
+		tables[j - 1][1] = 1;//读入vip桌子
+	}
+	sort(Customers, Customers + N, ArrivalQueue);//按到达时间排序
+	int emptyTable, vipTable, fastestTable, vip;
+	for (i = 0; i < N; i++)
+	{	
+		if (Customers[i].arriveTime > openTime)
+		{
+			for (j = 0; j < K; j++)
+			{
+				tables[j][0] -= (Customers[i].arriveTime - openTime);
+                //所有table经过arriveTime-openTime时长
+				if (tables[j][0] < 0)
+					tables[j][0] = 0;//服务结束了，将桌子置于空闲
+			}
+			openTime = Customers[i].arriveTime;//如果当前时刻该顾客还未到，时间调到顾客到达时间
+		}
+		//寻找最快结束的桌子
+		fastestTable = 0;
+		for (j = 1; j < K; j++)
+		{
+			if (tables[j][0] < tables[fastestTable][0])
+				fastestTable = j;
+		}
+		//时间调到最快结束桌子的结束时间
+		openTime += tables[fastestTable][0];
+		if (openTime >= endTime)//当有空桌时，已关门，后面的人不管了
+		{
+			N = i;
+			break;
+		}
+		int t = tables[fastestTable][0];
+		for (j = 0; j < K; j++)
+			tables[j][0] -= t;
+		//最快的桌子结束了，现在必有空桌
+
+		vipTable = findEmptyTable(1);//isvip=1时说明有vip顾客
+		vip = findVip(i, openTime);//vip顾客此时在等待
+		//有vip空桌时且当前时间有vip顾客,vip顾客优先
+		if (vipTable != -1 && vip != -1)
+		{
+			if (i != vip)
+				for (j = vip; j > i; j--)
+					swap(Customers[j], Customers[j - 1]);
+			emptyTable = vipTable;
+		}
+		else//当前时刻，vip空桌和vip顾客不同时存在
+		{
+			emptyTable = findEmptyTable(0);
+			if (emptyTable == -1)
+				while (1);
+		}
+		Customers[i].startTime = openTime;//重置时间，再循环执行上述代码
+		tables[emptyTable][0] = Customers[i].PlayTime;
+		served[emptyTable]++;//桌子的服务人数+1
+	}
+	int wait;
+	for (i = 0; i < N; i++)
+	{
+		if (Customers[i].startTime >= endTime)
+			while (1);
+		//格式化输出，该题目对格式化要求较高，printf优于cout输出
+		printf("%02d:%02d:%02d %02d:%02d:%02d", Customers[i].arriveTime / 3600, (Customers[i].arriveTime / 60) % 60, Customers[i].arriveTime % 60, Customers[i].startTime / 3600, (Customers[i].startTime / 60) % 60, Customers[i].startTime % 60);
+		//cout << Customers[i].arriveTime / 3600 << ':' << (Customers[i].arriveTime / 60) % 60 << ':' << Customers[i].arriveTime % 60 << ' ' << Customers[i].startTime / 3600 << ':' << (Customers[i].startTime / 60) % 60 << ':' << Customers[i].startTime % 60;
+		wait = Customers[i].startTime - Customers[i].arriveTime;//顾客等待的时间
+		wait = wait / 60 + (wait % 60) / 30;//时间格式化
+		cout << ' ' << wait << endl;
+	}
+	for (i = 0; i < K - 1; i++)
+		cout << served[i] << ' ';
+	cout << served[i] << endl;//输出球桌服务的顾客数量
+	return 0;
+}
+
